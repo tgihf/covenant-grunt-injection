@@ -97,10 +97,10 @@ begin {
         "[***] Example: -OutFile C:\Users\tgihf\Workspace\injector.exe"
         exit
     }
-    if (-Not ($LauncherURL -or $InputFile)) {
+    if (-not ($LauncherURL -or $InputFile)) {
         throw "[!] Must specify LauncherURL or InputFile"
     }
-    if (-Not ($DotNetFrameworkVersion -In @("3.5", "4.0"))) {
+    if (@("3.5", "4.0") -notcontains $DotNetFrameworkVersion) {
         throw "[!] Invalid .NET Framework Version: should be 3.5 or 4.0"
     }
     $ErrorActionPreference = "Stop"
@@ -333,7 +333,7 @@ process {
     }
 }
 end {
-    if (-Not $InputFile) {
+    if (-not $InputFile) {
         Remove-Item -Path $LauncherAssemblyPath
     }
     Remove-Item -Path $LauncherShellcodePath
