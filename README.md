@@ -4,7 +4,7 @@ A PowerShell script that turns a Covenant Grunt launcher into a .NET assembly th
 
 ## Installation / Getting started
 
-The script relies on [Donut](https://github.com/TheWover/donut) to convert the Grunt launcher .NET assembly into shellcode. Follow their installation and compilation instructions and ensure donut.exe is either in your PATH or note its path.
+The script relies on [Donut](https://github.com/TheWover/donut) to convert the Grunt launcher .NET assembly into shellcode. Follow their installation and compilation instructions and ensure `donut.exe` is either in your PATH or note its path.
 
 Clone this repository.
 
@@ -12,7 +12,7 @@ Clone this repository.
 git clone https://github.com/tgihf/covenant-grunt-injection.git
 ```
 
-The script uses `csc.exe` to compile the Grunt injector which is executed on the target machine. If you'll be targeting machines that only have .NET 3.5 installed, make sure you have .NET 3.5 and its `csc.exe` installed. If you'll be targeting machines that only have .NET 4.0 installed, make sure you have .NET 4.0 and its `csc.exe` installed. For best results, just install both!
+The script uses `csc` to compile the Grunt injector which is executed on the target machine. If you'll be targeting machines that only have .NET 3.5 installed, make sure you have .NET 3.5 and its `csc.exe` installed. If you'll be targeting machines that only have .NET 4.0 installed, make sure you have .NET 4.0 and its `csc.exe` installed. For best results, just install both!
 
 ## Usage
 
